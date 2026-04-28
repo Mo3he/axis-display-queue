@@ -31,9 +31,10 @@ The display driver (whichever implementation you choose) subscribes to both topi
 
 ```
 queue system/
-├── queue_system.py          # MQTT queue simulator
-├── config.yaml              # Simulator configuration
-├── requirements.txt         # Python dependencies for the simulator
+├── queue_system/
+│   ├── queue_system.py      # MQTT queue simulator
+│   ├── config.yaml          # Simulator configuration
+│   └── requirements.txt     # Python dependencies for the simulator
 └── examples/
     ├── 1_python_script/     # Python display driver (tested, recommended)
     ├── 2_acap/              # ACAP C application (runs on the speaker itself)
@@ -50,6 +51,7 @@ queue system/
 The simulator generates orders at random intervals and publishes them to MQTT.
 
 ```bash
+cd queue_system
 python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -57,7 +59,7 @@ pip install -r requirements.txt
 python queue_system.py
 ```
 
-Edit `config.yaml` to change the broker address, timing, or topic names.
+Edit `queue_system/config.yaml` to change the broker address, timing, or topic names.
 
 ### 2. Pick a display driver and run it alongside the simulator
 
@@ -65,7 +67,7 @@ See the sections below.
 
 ---
 
-## Configuration (`config.yaml`)
+## Configuration (`queue_system/config.yaml`)
 
 ```yaml
 mqtt:
