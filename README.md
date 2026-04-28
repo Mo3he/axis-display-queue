@@ -88,11 +88,35 @@ orders:
 
 ---
 
+## Choosing a display driver
+
+| | Python script | ACAP | Node-RED | Shell script |
+|---|---|---|---|---|
+| Runs on | Any machine with Python | The Axis device itself | Any machine with Node-RED | Any Linux/macOS host |
+| External host required | Yes | **No** | Yes | Yes |
+| Setup effort | Low | Medium (build + install) | Low | Low |
+| Customisation | Edit Python | Edit C, rebuild | Drag-and-drop UI | Edit bash |
+| Best for | Dev/testing, always-on servers | Production, standalone | Non-developers, rapid prototyping | Embedded Linux, scripting pipelines |
+
+---
+
 ## Display examples
 
 ### 1. Python script (`examples/1_python_script/`)
 
-The simplest way to get started. Runs on any machine with Python 3.10+.
+**How it works**
+
+`display_queue.py` connects to the MQTT broker using `paho-mqtt` and subscribes to both the queue and ready topics. When a message arrives it parses the JSON array and calls the VAPIX Speaker Display Notification API via HTTP Digest using the `requests` library. A `threading.Timer` fires after the configured ready duration and reverts the display back to the queue view.
+
+**Pros**
+- Easiest to read, modify, and debug
+- Runs on any OS with Python 3.10+
+- Config is a plain YAML file — no recompile needed
+- Good starting point for adapting to other display content or logic
+
+**Cons**
+- Requires a host machine to be running continuously alongside the speaker
+- Python runtime and dependencies must be installed
 
 **Setup**
 
@@ -109,13 +133,29 @@ Edit `config.yaml` and set `display.host`, `display.username`, `display.password
 python display_queue.py
 ```
 
-**Tested live** against `10.129.174.195` — confirmed full queue-to-ready-to-queue cycle working.
+**Tested live** against a real Axis Display Speaker — confirmed full queue-to-ready-to-queue cycle working.
 
 ---
 
 ### 2. ACAP (`examples/2_acap/`)
 
-An ACAP (Axis Camera Application Platform) application that runs directly **on the Axis Display Speaker**. Because it runs on the device, VAPIX calls go to localhost — no external machine needed after installation.
+**How it works**
+
+An ACAP (Axis Camera Application Platform) native C application that runs directly **on the Axis Display Speaker** itself. It uses a raw POSIX socket MQTT client (no external library) to subscribe to the broker, and libcurl to POST to the VAPIX Speaker Display API at `127.0.0.12` (the on-device VAPIX service address). VAPIX credentials are fetched at startup via D-Bus from the device's own credential store. Settings (broker host, port, topics, ready duration) are stored via `axparameter` and appear automatically in the device web UI under Apps > Queue Display > Settings.
+
+The pre-built `.eap` installer is included in `examples/2_acap/` for aarch64 devices.
+
+**Pros**
+- Fully self-contained — no external host required after installation
+- Runs persistently as a supervised process (auto-restarts on crash)
+- Settings manageable from the device web UI without touching any files
+- VAPIX calls stay on-device (loopback) — no network hop for display updates
+- Smallest possible footprint: a single C binary, no interpreter or runtime
+
+**Cons**
+- Requires Docker or Podman to rebuild from source
+- Changes to logic require a C recompile and reinstall
+- Only runs on Axis devices with ACAP support (aarch64 firmware 12.x+)
 
 **Build** (requires Docker or Podman)
 
@@ -133,23 +173,42 @@ Extract the built `.eap`:
 
 ```bash
 CONTAINER_ID=$(docker create queue-display-acap)
-docker cp "$CONTAINER_ID":/opt/app/queue_display_1_0_0_aarch64.eap .
+docker cp "$CONTAINER_ID":/opt/app/Queue_Display_1_0_0_aarch64.eap .
 docker rm "$CONTAINER_ID"
 ```
 
 **Install**
 
-Upload `queue_display_1_0_0_aarch64.eap` via the device web interface at `http://<device-ip>/#settings/apps`.
+Upload `Queue_Display_1_0_0_aarch64.eap` via the device web interface at `http://<device-ip>/#settings/apps`, or use curl:
+
+```bash
+curl --digest -u root:pass \
+  -F "upload=@Queue_Display_1_0_0_aarch64.eap" \
+  http://<device-ip>/axis-cgi/applications/upload.cgi
+```
 
 **Configure**
 
-After installation, open the ACAP settings page on the device (`http://<device-ip>/#settings/apps` -> Queue Display -> Settings). The parameters (MQTT host/port, topic names, ready display duration) are declared in `manifest.json` and appear automatically in the device web UI.
+After installation, open `http://<device-ip>/#settings/apps` -> Queue Display -> Settings. The MQTT host, port, topic names, and ready display duration are all configurable from there without rebuilding.
 
 ---
 
 ### 3. Node-RED (`examples/3_node_red/`)
 
-A ready-to-import Node-RED flow. No coding required — just configure credentials in the UI.
+**How it works**
+
+A Node-RED flow with two `mqtt-in` nodes (one per topic) feeding into function nodes that format the display message and manage the ready-to-queue revert timer using `setTimeout`. The formatted JSON is sent to an `http request` node that POSTs to the VAPIX API with HTTP Digest authentication. All wiring is visual — no code files to edit.
+
+**Pros**
+- No coding required — everything is configured through the Node-RED UI
+- Easy to extend: add new nodes (email alerts, dashboards, logging) without touching existing logic
+- Visual flow makes the data path obvious
+- Good fit for teams already running Node-RED for other integrations
+
+**Cons**
+- Requires a running Node-RED instance (typically a separate server or Raspberry Pi)
+- The ready-to-queue revert timer lives inside a function node, which can be lost on flow redeploy
+- Digest auth configuration is less obvious than basic auth in Node-RED
 
 **Import**
 
@@ -165,7 +224,20 @@ The flow handles the queue view, ready alert (8 s timed), and automatic revert u
 
 ### 4. Shell script (`examples/4_other/queue_display.sh`)
 
-Pure bash — useful on constrained Linux hosts or for scripting pipelines.
+**How it works**
+
+`mosquitto_sub` runs in a loop and pipes each incoming MQTT message to the main logic. `jq` parses the JSON array and formats the display string. `curl --digest` sends the VAPIX POST request. The ready-to-queue revert is handled by a background `sleep` + kill pattern using bash job control.
+
+**Pros**
+- Zero dependencies beyond `mosquitto-clients`, `curl`, and `jq` — available on almost any Linux system
+- Single file, easy to audit
+- Simple to embed in cron jobs, systemd services, or other shell pipelines
+- No runtime to install or maintain
+
+**Cons**
+- Bash's background job handling for the revert timer is fragile — rapid ready updates can leave stale background jobs
+- No persistent settings: all config is environment variables or edited inline
+- Harder to extend cleanly compared to a proper language
 
 **Dependencies**
 
