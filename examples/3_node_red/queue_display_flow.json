@@ -55,7 +55,7 @@
         "method": "POST",
         "ret": "obj",
         "paytoqs": "ignore",
-        "url": "",
+        "url": "http://SPEAKER_IP/config/rest/speaker-display-notification/v1/simple",
         "tls": "",
         "persist": false,
         "proxy": "",
@@ -81,6 +81,16 @@
         "targetType": "msg",
         "x": 780,
         "y": 160,
+        "wires": []
+    },
+    {
+        "id": "setup-note",
+        "type": "comment",
+        "z": "queue-display-flow",
+        "name": "Setup required",
+        "info": "Before deploying, configure the following nodes:\n\n1. Both 'mqtt in' nodes: select your MQTT broker\n2. 'POST to speaker display' node:\n   - Set URL to: http://<your-speaker-ip>/config/rest/speaker-display-notification/v1/simple\n   - Set username and password for the Axis device",
+        "x": 580,
+        "y": 60,
         "wires": []
     },
     {
