@@ -1,0 +1,16 @@
+mqtt:
+  host: 10.129.174.38
+  port: 1883
+
+topics:
+  queue: restaurant/queue    # orders being prepared
+  ready: restaurant/ready    # orders ready for pickup
+
+orders:
+  max_number: 99           # highest order number before wrapping back to 1
+  arrival_min: 60          # min seconds between new orders
+  arrival_max: 120         # max seconds between new orders
+  cook_time_min: 120        # min seconds an order spends in the queue (being cooked)
+  cook_time_max: 360       # max seconds an order spends in the queue (being cooked)
+  pickup_time_min: 30      # min seconds an order stays in ready before disappearing
+  pickup_time_max: 120      # max seconds an order stays in ready before disappearing

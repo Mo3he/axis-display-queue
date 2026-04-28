@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.7.1",
+  "acapPackageConf": {
+    "setup": {
+      "appName": "queue_display",
+      "friendlyName": "Queue Display",
+      "vendor": "Axis",
+      "embeddedSdkVersion": "3.0",
+      "runMode": "respawn",
+      "version": "1.0.0"
+    },
+    "configuration": {
+      "paramConfig": [
+        {"name": "MqttHost",        "default": "10.129.174.38",    "type": "String"},
+        {"name": "MqttPort",        "default": "1883",             "type": "String"},
+        {"name": "QueueTopic",      "default": "restaurant/queue", "type": "String"},
+        {"name": "ReadyTopic",      "default": "restaurant/ready", "type": "String"},
+        {"name": "ReadyDurationMs", "default": "8000",             "type": "String"}
+      ]
+    }
+  },
+  "resources": {
+    "dbus": {
+      "requiredMethods": [
+        "com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials"
+      ]
+    }
+  }
+}

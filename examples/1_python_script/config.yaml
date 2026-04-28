@@ -1,0 +1,13 @@
+mqtt:
+  host: 10.129.174.38
+  port: 1883
+
+topics:
+  queue: restaurant/queue
+  ready: restaurant/ready
+
+display:
+  host: 10.129.174.195       # IP of the Axis Display Speaker
+  username: root
+  password: pass
+  ready_duration_ms: 8000    # how long the "ORDER READY" screen stays up
