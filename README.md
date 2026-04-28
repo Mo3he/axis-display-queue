@@ -125,7 +125,7 @@ cd examples/1_python_script
 pip install -r requirements.txt
 ```
 
-Edit `config.yaml` and set `display.host`, `display.username`, `display.password`.
+Edit `config.yaml` and set `display.host`, `display.username`, `display.password`. To connect to a password-protected MQTT broker also set `mqtt.username` and `mqtt.password` (leave blank for anonymous brokers).
 
 **Run**
 
@@ -189,7 +189,7 @@ curl --digest -u root:pass \
 
 **Configure**
 
-After installation, open `http://<device-ip>/#settings/apps` -> Queue Display -> Settings. The MQTT host, port, topic names, and ready display duration are all configurable from there without rebuilding.
+After installation, open `http://<device-ip>/#settings/apps` -> Queue Display -> Settings. The MQTT host, port, username, password, topic names, and ready display duration are all configurable from there without rebuilding.
 
 ---
 
@@ -252,6 +252,17 @@ brew install mosquitto curl jq
 **Run**
 
 ```bash
+DISPLAY_HOST=10.129.174.195 \
+DISPLAY_USER=root \
+DISPLAY_PASS=pass \
+MQTT_HOST=10.129.174.38 \
+./examples/4_other/queue_display.sh
+```
+
+For a password-protected broker, add `MQTT_USER` and `MQTT_PASS`:
+
+```bash
+MQTT_USER=myuser MQTT_PASS=mypass \
 DISPLAY_HOST=10.129.174.195 \
 DISPLAY_USER=root \
 DISPLAY_PASS=pass \
