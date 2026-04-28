@@ -168,13 +168,13 @@ static gboolean revert_cb(gpointer ud) {
 }
 
 static void show_queue(void) {
-    char msg[600], json[900];
+    char msg[600], json[1024];
     snprintf(msg, sizeof(msg), "PREPARING:  %s", g_queue_str[0] ? g_queue_str : "(none)");
     snprintf(json, sizeof(json),
-        "{\"message\":\"%s\","
+        "{\"data\":{\"message\":\"%s\","
         "\"textColor\":\"#FFFFFF\",\"backgroundColor\":\"#1A1A2E\","
         "\"textSize\":\"large\",\"scrollDirection\":\"fromRightToLeft\","
-        "\"scrollSpeed\":4,\"duration\":{\"type\":\"timeCompleteMessage\"}}",
+        "\"scrollSpeed\":4,\"duration\":{\"type\":\"timeCompleteMessage\"}}}",
         msg);
     display_post(json);
     LOG("show_queue: %s", g_queue_str);
@@ -182,13 +182,13 @@ static void show_queue(void) {
 
 static void show_ready(void) {
     pthread_mutex_lock(&g_mu); int dur = g_ready_ms; pthread_mutex_unlock(&g_mu);
-    char msg[600], json[900];
+    char msg[600], json[1024];
     snprintf(msg, sizeof(msg), "ORDER READY:  %s", g_ready_str);
     snprintf(json, sizeof(json),
-        "{\"message\":\"%s\","
+        "{\"data\":{\"message\":\"%s\","
         "\"textColor\":\"#000000\",\"backgroundColor\":\"#00CC44\","
         "\"textSize\":\"large\",\"scrollDirection\":\"fromRightToLeft\","
-        "\"scrollSpeed\":5,\"duration\":{\"type\":\"time\",\"value\":%d}}",
+        "\"scrollSpeed\":5,\"duration\":{\"type\":\"time\",\"value\":%d}}}",
         msg, dur);
     display_post(json);
     LOG("show_ready: %s", g_ready_str);
