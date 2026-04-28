@@ -174,7 +174,7 @@ static void show_queue(void) {
         "{\"data\":{\"message\":\"%s\","
         "\"textColor\":\"#FFFFFF\",\"backgroundColor\":\"#1A1A2E\","
         "\"textSize\":\"large\",\"scrollDirection\":\"fromRightToLeft\","
-        "\"scrollSpeed\":4,\"duration\":{\"type\":\"timeCompleteMessage\"}}}",
+        "\"scrollSpeed\":4}}",
         msg);
     display_post(json);
     LOG("show_queue: %s", g_queue_str);
