@@ -198,6 +198,10 @@ def main() -> None:
     client = mqtt.Client(client_id="queue-display-driver", clean_session=True)
     client.on_connect = on_connect
     client.on_message = on_message
+    mqtt_user = config["mqtt"].get("username") or ""
+    mqtt_pass = config["mqtt"].get("password") or ""
+    if mqtt_user:
+        client.username_pw_set(mqtt_user, mqtt_pass or None)
     client.connect(broker_host, broker_port, keepalive=60)
 
     log.info("Display driver starting - press Ctrl+C to stop")

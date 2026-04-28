@@ -39,6 +39,8 @@
 static pthread_mutex_t g_mu = PTHREAD_MUTEX_INITIALIZER;
 static char g_mqtt_host[256]   = "127.0.0.1";
 static int  g_mqtt_port        = 1883;
+static char g_mqtt_user[256]   = "";
+static char g_mqtt_pass[256]   = "";
 static char g_queue_topic[256] = "restaurant/queue";
 static char g_ready_topic[256] = "restaurant/ready";
 static int  g_ready_ms         = 8000;
@@ -59,12 +61,18 @@ static void on_param(const gchar *name, const gchar *value, gpointer ud) {
     pthread_mutex_lock(&g_mu);
     if      (!strcmp(name, "MqttHost"))        g_strlcpy(g_mqtt_host, value, sizeof(g_mqtt_host));
     else if (!strcmp(name, "MqttPort"))        g_mqtt_port = atoi(value);
+    else if (!strcmp(name, "MqttUsername"))    g_strlcpy(g_mqtt_user, value, sizeof(g_mqtt_user));
+    else if (!strcmp(name, "MqttPassword"))    g_strlcpy(g_mqtt_pass, value, sizeof(g_mqtt_pass));
     else if (!strcmp(name, "QueueTopic"))      g_strlcpy(g_queue_topic, value, sizeof(g_queue_topic));
     else if (!strcmp(name, "ReadyTopic"))      g_strlcpy(g_ready_topic, value, sizeof(g_ready_topic));
     else if (!strcmp(name, "ReadyDurationMs")) g_ready_ms = atoi(value);
     g_reconnect = 1;
     pthread_mutex_unlock(&g_mu);
-    LOG("Param: %s = %s", name, value);
+    /* Avoid logging the password value */
+    if (!strcmp(name, "MqttPassword"))
+        LOG("Param: %s = ***", name);
+    else
+        LOG("Param: %s = %s", name, value);
 }
 
 static void settings_init(void) {
@@ -73,10 +81,12 @@ static void settings_init(void) {
     if (!g_param) { LOG_WARN("ax_parameter_new: %s", err ? err->message : "?"); if (err) g_error_free(err); return; }
     param_str("MqttHost",        g_mqtt_host,   sizeof(g_mqtt_host));
     param_int("MqttPort",        &g_mqtt_port);
+    param_str("MqttUsername",    g_mqtt_user,   sizeof(g_mqtt_user));
+    param_str("MqttPassword",    g_mqtt_pass,   sizeof(g_mqtt_pass));
     param_str("QueueTopic",      g_queue_topic, sizeof(g_queue_topic));
     param_str("ReadyTopic",      g_ready_topic, sizeof(g_ready_topic));
     param_int("ReadyDurationMs", &g_ready_ms);
-    const char *names[] = { "MqttHost","MqttPort","QueueTopic","ReadyTopic","ReadyDurationMs",NULL };
+    const char *names[] = { "MqttHost","MqttPort","MqttUsername","MqttPassword","QueueTopic","ReadyTopic","ReadyDurationMs",NULL };
     for (int i = 0; names[i]; i++)
         ax_parameter_register_callback(g_param, names[i], on_param, NULL, NULL);
 }
@@ -247,15 +257,25 @@ static int skip_bytes(int fd, uint32_t n) {
     return 0;
 }
 
-static int mqtt_connect_pkt(int fd, const char *cid) {
-    uint16_t cid_len = (uint16_t)strlen(cid);
-    uint32_t rem = 10 + 2 + cid_len;
-    uint8_t buf[256]; int pos = 0;
+static int mqtt_connect_pkt(int fd, const char *cid, const char *user, const char *pass) {
+    uint16_t cid_len  = (uint16_t)strlen(cid);
+    uint16_t user_len = user && user[0] ? (uint16_t)strlen(user) : 0;
+    uint16_t pass_len = pass && pass[0] ? (uint16_t)strlen(pass) : 0;
+    /* connect flags: CleanSession=1, plus Username/Password bits if set */
+    uint8_t flags = 0x02;
+    if (user_len) flags |= 0x80;
+    if (pass_len) flags |= 0x40;
+    uint32_t rem = 10 + 2 + cid_len
+                 + (user_len ? 2 + user_len : 0)
+                 + (pass_len ? 2 + pass_len : 0);
+    uint8_t buf[768]; int pos = 0;
     buf[pos++] = 0x10; pos += encode_rl(buf + pos, rem);
     w16(buf + pos, 4); pos += 2; memcpy(buf + pos, "MQTT", 4); pos += 4;
-    buf[pos++] = 4; buf[pos++] = 0x02;
+    buf[pos++] = 4; buf[pos++] = flags;
     w16(buf + pos, 60); pos += 2;
     w16(buf + pos, cid_len); pos += 2; memcpy(buf + pos, cid, cid_len); pos += cid_len;
+    if (user_len) { w16(buf + pos, user_len); pos += 2; memcpy(buf + pos, user, user_len); pos += user_len; }
+    if (pass_len) { w16(buf + pos, pass_len); pos += 2; memcpy(buf + pos, pass, pass_len); pos += pass_len; }
     return send_all(fd, buf, pos);
 }
 static int mqtt_subscribe_pkt(int fd, const char *topic, uint16_t pid) {
@@ -273,9 +293,10 @@ static void *mqtt_thread(void *arg) {
     char cid[64]; snprintf(cid, sizeof(cid), "%s-%d", APP_NAME, (int)getpid());
 
     while (g_running) {
-        char host[256]; int port; char qt[256], rt[256];
+        char host[256]; int port; char qt[256], rt[256]; char user[256], pass[256];
         pthread_mutex_lock(&g_mu);
         g_strlcpy(host, g_mqtt_host, sizeof(host)); port = g_mqtt_port;
+        g_strlcpy(user, g_mqtt_user, sizeof(user)); g_strlcpy(pass, g_mqtt_pass, sizeof(pass));
         g_strlcpy(qt, g_queue_topic, sizeof(qt)); g_strlcpy(rt, g_ready_topic, sizeof(rt));
         g_reconnect = 0;
         pthread_mutex_unlock(&g_mu);
@@ -294,7 +315,7 @@ static void *mqtt_thread(void *arg) {
         struct timeval tv = {65, 0};
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-        if (mqtt_connect_pkt(fd, cid) < 0) { close(fd); sleep(5); continue; }
+        if (mqtt_connect_pkt(fd, cid, user, pass) < 0) { close(fd); sleep(5); continue; }
 
         uint8_t hdr; uint32_t rem; uint8_t ca[2];
         if (recv(fd, &hdr, 1, MSG_WAITALL) != 1 || hdr != 0x20 ||

@@ -13,6 +13,8 @@
       "paramConfig": [
         {"name": "MqttHost",        "default": "10.129.174.38",    "type": "String"},
         {"name": "MqttPort",        "default": "1883",             "type": "String"},
+        {"name": "MqttUsername",    "default": "",                 "type": "String"},
+        {"name": "MqttPassword",    "default": "",                 "type": "String"},
         {"name": "QueueTopic",      "default": "restaurant/queue", "type": "String"},
         {"name": "ReadyTopic",      "default": "restaurant/ready", "type": "String"},
         {"name": "ReadyDurationMs", "default": "8000",             "type": "String"}

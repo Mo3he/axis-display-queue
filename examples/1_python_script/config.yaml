@@ -1,6 +1,8 @@
 mqtt:
   host: 10.129.174.38
   port: 1883
+  username:              # leave blank for anonymous brokers
+  password:
 
 topics:
   queue: restaurant/queue

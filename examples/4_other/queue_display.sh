@@ -12,11 +12,14 @@
 # Usage:
 #   DISPLAY_HOST=10.129.174.195 DISPLAY_USER=root DISPLAY_PASS=pass \
 #   MQTT_HOST=10.129.174.38 ./queue_display.sh
+#   MQTT_USER=myuser MQTT_PASS=mypass MQTT_HOST=10.129.174.38 ./queue_display.sh
 
 set -euo pipefail
 
 MQTT_HOST="${MQTT_HOST:-10.129.174.38}"
 MQTT_PORT="${MQTT_PORT:-1883}"
+MQTT_USER="${MQTT_USER:-}"   # leave blank for anonymous brokers
+MQTT_PASS="${MQTT_PASS:-}"
 QUEUE_TOPIC="${QUEUE_TOPIC:-restaurant/queue}"
 READY_TOPIC="${READY_TOPIC:-restaurant/ready}"
 
@@ -86,13 +89,20 @@ send_ready_view() {
 # --------------------------------------------------------------------------
 # Main: subscribe to both topics and dispatch
 # --------------------------------------------------------------------------
+# Build optional mosquitto_sub auth args
+MQTT_AUTH_ARGS=()
+if [[ -n "${MQTT_USER}" ]]; then
+    MQTT_AUTH_ARGS=(-u "${MQTT_USER}" -P "${MQTT_PASS}")
+fi
+
 log "Queue display driver starting"
-log "MQTT: ${MQTT_HOST}:${MQTT_PORT}"
+log "MQTT: ${MQTT_HOST}:${MQTT_PORT}${MQTT_USER:+ (user: ${MQTT_USER})}"
 log "Speaker: ${DISPLAY_HOST}"
 
 mosquitto_sub \
     -h "${MQTT_HOST}" \
     -p "${MQTT_PORT}" \
+    "${MQTT_AUTH_ARGS[@]+${MQTT_AUTH_ARGS[@]}}" \
     -t "${QUEUE_TOPIC}" \
     -t "${READY_TOPIC}" \
     --retained-only 2>/dev/null &   # prime with retained messages first
@@ -100,6 +110,7 @@ mosquitto_sub \
 mosquitto_sub \
     -h "${MQTT_HOST}" \
     -p "${MQTT_PORT}" \
+    "${MQTT_AUTH_ARGS[@]+${MQTT_AUTH_ARGS[@]}}" \
     -t "${QUEUE_TOPIC}" \
     -t "${READY_TOPIC}" \
     -F "%t %p" \
