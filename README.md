@@ -36,7 +36,7 @@ queue system/
 │   ├── config.yaml          # Simulator configuration
 │   └── requirements.txt     # Python dependencies for the simulator
 └── examples/
-    ├── 1_python_script/     # Python display driver (tested, recommended)
+    ├── 1_python_script/     # Python display driver (simple)
     ├── 2_acap/              # ACAP C application (runs on the speaker itself)
     ├── 3_node_red/          # Node-RED flow (import and go)
     └── 4_other/             # Shell script (bash + mosquitto_sub + curl)
