@@ -7,7 +7,7 @@
         "topic": "restaurant/queue",
         "qos": "1",
         "datatype": "json",
-        "broker": "mqtt-broker",
+        "broker": "",
         "x": 120,
         "y": 120,
         "wires": [["parse-queue"]]
@@ -20,7 +20,7 @@
         "topic": "restaurant/ready",
         "qos": "1",
         "datatype": "json",
-        "broker": "mqtt-broker",
+        "broker": "",
         "x": 120,
         "y": 200,
         "wires": [["parse-ready"]]
@@ -55,14 +55,14 @@
         "method": "POST",
         "ret": "obj",
         "paytoqs": "ignore",
-        "url": "http://10.129.174.195/config/rest/speaker-display-notification/v1/simple",
+        "url": "",
         "tls": "",
         "persist": false,
         "proxy": "",
         "authType": "digest",
         "credentials": {
-            "user": "root",
-            "password": "pass"
+            "user": "",
+            "password": ""
         },
         "x": 580,
         "y": 160,
@@ -89,31 +89,5 @@
         "label": "Queue Display",
         "disabled": false,
         "info": "Displays restaurant queue and ready tickets on an Axis Display Speaker.\n\nSubscribes to:\n  restaurant/queue  ->  list of orders being prepared\n  restaurant/ready  ->  list of orders ready for pickup\n\nPosts to the VAPIX Speaker Display Notification API on the speaker.\nReady alert shows for 8 seconds then reverts to queue view."
-    },
-    {
-        "id": "mqtt-broker",
-        "type": "mqtt-broker",
-        "name": "Restaurant broker",
-        "broker": "10.129.174.38",
-        "port": "1883",
-        "clientid": "nodered-queue-display",
-        "autoConnect": true,
-        "usetls": false,
-        "protocolVersion": "4",
-        "keepalive": "60",
-        "cleansession": true,
-        "autoUnsubscribe": true,
-        "birthTopic": "",
-        "birthQos": "0",
-        "birthRetain": "false",
-        "birthPayload": "",
-        "closeTopic": "",
-        "closeQos": "0",
-        "closeRetain": "false",
-        "closePayload": "",
-        "willTopic": "",
-        "willQos": "0",
-        "willRetain": "false",
-        "willPayload": ""
     }
 ]
